@@ -27,6 +27,15 @@ public class Enemy : MonoBehaviour
         m_agent.SetDestination(m_player.m_transform.position);
     }
 
+    public void OnDamage(int damage)
+    {
+        m_life -= damage;
+        if (m_life <= 0)
+        {
+            m_ani.SetBool("daeth", true);
+            m_agent.ResetPath();
+        }
+    }
     void RotateTo()
     {
         Vector3 targetdir = m_player.m_transform.position - m_transform.position;
@@ -87,7 +96,18 @@ public class Enemy : MonoBehaviour
                 m_ani.SetBool("idle", true);
                 m_timer = 2;
             }
-        } 
-            
+            m_player.OnDamage(1);
+        }
+
+        if (stateInfo.fullPathHash == Animator.StringToHash("Base Layer.death") &&
+            !m_ani.IsInTransition(0))
+        {
+            m_ani.SetBool("daeth", false);
+            if (stateInfo.normalizedTime >= 1.0f)
+            {
+                GameManager.Instance.SetScore(100);
+                Destroy(this.gameObject);
+            }
+        }
     }
 }

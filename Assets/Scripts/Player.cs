@@ -15,7 +15,12 @@ public class Player : MonoBehaviour
     private Vector3 m_camRot;
 
     private float m_camHeight = 1.4f;
-    
+
+    private Transform m_muzzlepoint;
+    public LayerMask m_layer;
+    public Transform m_fx;
+    public AudioClip m_audio;
+    private float m_shootTimer = 0;
     
     // Start is called before the first frame update
     void Start()
@@ -27,8 +32,16 @@ public class Player : MonoBehaviour
         m_camTransform.rotation = m_transform.rotation;
         m_camRot = m_camTransform.eulerAngles;
         Screen.lockCursor = true;
+        m_muzzlepoint = m_camTransform.Find("M16/weapon/muzzlepoint").transform;
     }
 
+    public void OnDamage(int damage)
+    {
+        m_life -= damage;
+        GameManager.Instance.SetLife(m_life);
+        if (m_life <= 0)
+            Screen.lockCursor = false;
+    }
     // Update is called once per frame
     void Update()
     {
@@ -38,6 +51,27 @@ public class Player : MonoBehaviour
         }
 
         Control();
+
+        m_shootTimer -= Time.deltaTime;
+        if (Input.GetMouseButton(0) && m_shootTimer <= 0)
+        {
+            m_shootTimer = 0.1f;
+            this.GetComponent<AudioSource>().PlayOneShot(m_audio);
+            GameManager.Instance.SetAmmo(1);
+            RaycastHit info;
+            bool hit = Physics.Raycast(m_muzzlepoint.position, m_camTransform.TransformDirection(Vector3.forward),
+                out info, 100, m_layer);
+            if (hit)
+            {
+                if (info.transform.tag.CompareTo("enemy") == 0)
+                {
+                    Enemy enemy = info.transform.GetComponent<Enemy>();
+                    enemy.OnDamage(1);
+                }
+
+                Instantiate(m_fx, info.point, info.transform.rotation);
+            }
+        }
     }
 
     void Control()
